@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace MechanicMonke
+namespace CapuchinModManager
 {
     public partial class StringPromptBox : Form
     {
@@ -29,6 +29,11 @@ namespace MechanicMonke
                 Output = null;
                 this.Close();
             };
+        }
+
+        private void text_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

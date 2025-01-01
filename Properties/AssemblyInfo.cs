@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MechanicMonke")]
-[assembly: AssemblyDescription("MonkeModManager but a mechanic and also a monke")]
+[assembly: AssemblyTitle("CapuchinModManager")]
+[assembly: AssemblyDescription("Capuchin Mod Manager")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Bingus Technologies, LLC.")]
-[assembly: AssemblyProduct("MechanicMonke")]
+[assembly: AssemblyProduct("CapuchinModManager")]
 [assembly: AssemblyCopyright("Copyright © 2024 - 2025 Bingus (BingusZingus).")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -30,6 +30,6 @@ using System.Runtime.InteropServices;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: NeutralResourcesLanguage("en")]

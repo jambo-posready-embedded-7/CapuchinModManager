@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
 
-namespace MechanicMonke
+namespace CapuchinModManager
 {
     partial class About : Form
     {
@@ -114,6 +114,11 @@ namespace MechanicMonke
         private void button2_Click(object sender, EventArgs e)
         {
             Process.Start("https://discord.gg/monkemod");
+        }
+
+        private void okButton_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

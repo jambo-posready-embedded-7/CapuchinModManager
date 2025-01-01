@@ -16,12 +16,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MechanicMonke.SimpleJSON;
+using CapuchinModManager.SimpleJSON;
 using Microsoft.Win32;
-using MonkeModManager.Internals;
 using static System.Windows.Forms.ListViewItem;
 
-namespace MechanicMonke
+namespace CapuchinModManager
 {
     public partial class Main : Form
     {
@@ -32,17 +31,10 @@ namespace MechanicMonke
 
         public string[] installLocationDefinitions =
         {
-            // Have a common install directory that you play Gorilla Tag on? Send us a PR with this added here.
-
             // Steam
-            @"C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag", // default
-            @"C:\Program Files\\Steam\steamapps\common\Gorilla Tag",
-            @"D:\Steam\\steamapps\common\Gorilla Tag",
-
-            // Oculus
-            @"C:\Program Files\Oculus\Software\Software\another-axiom-gorilla-tag", // default
-            @"C:\Program Files (x86)\Oculus\Software\Software\another-axiom-gorilla-tag",
-            @"D:\Oculus\Software\Software\another-axiom-gorilla-tag",
+            @"C:\Program Files (x86)\Steam\steamapps\common\Capuchin", // default
+            @"C:\Program Files\\Steam\steamapps\common\Capuchin",
+            @"D:\Steam\\steamapps\common\Capuchin",
         };
 
         public void SetStatusText(string text)
@@ -51,7 +43,7 @@ namespace MechanicMonke
         }
 
         string installLocation = null;
-        string registryInstallLocation = (string)Registry.GetValue(@"HKEY_CURRENT_USER\Software\MechanicMonke", "installLocation", null);
+        string registryInstallLocation = (string)Registry.GetValue(@"HKEY_CURRENT_USER\Software\CapuchinModManager", "installLocation", null);
 
         public void FindInstallDirectory()
         {
@@ -61,11 +53,11 @@ namespace MechanicMonke
                 {
                     // make sure it contains Gorilla Tag
 
-                    if (System.IO.File.Exists(definition + @"\Gorilla Tag.exe"))
+                    if (System.IO.File.Exists(definition + @"\Capuchin.exe"))
                     {
                         installLocation = definition;
 
-                        Registry.SetValue(@"HKEY_CURRENT_USER\Software\MechanicMonke", "installLocation", installLocation);
+                        Registry.SetValue(@"HKEY_CURRENT_USER\Software\CapuchinModManager", "installLocation", installLocation);
                         break;
                     }
                 }
@@ -74,18 +66,7 @@ namespace MechanicMonke
 
         public string ReturnGameInstallationPlatform(string path)
         {
-            if (path.Contains("Gorilla Tag"))
-            {
-                return "Steam";
-            }
-            else if (path.Contains("another-axiom-gorilla-tag"))
-            {
-                return "Oculus";
-            }
-            else
-            {
-                return "Unknown";
-            }
+            return "Steam";
         }
 
         private CookieContainer PermCookie;
@@ -101,7 +82,7 @@ namespace MechanicMonke
                 RQuest.CookieContainer = PermCookie;
                 RQuest.ContentType = "application/x-www-form-urlencoded";
                 RQuest.Referer = "";
-                RQuest.UserAgent = "MechanicMonke";
+                RQuest.UserAgent = "CapuchinModManager";
                 RQuest.Proxy = null;
 
                 HttpWebResponse Response = (HttpWebResponse)RQuest.GetResponse();
@@ -128,91 +109,7 @@ namespace MechanicMonke
         List<Mod> Mods = new List<Mod>();
         List<string> DictionarySources = new List<string>();
 
-        public void SearchDirForMods(string dir)
-        {
-            string[] files = Directory.GetFiles(dir);
-
-            foreach (string file in files)
-            {
-                string fname = Path.GetFileName(file);
-                fname = fname.Replace(" ", ""); // strip spaces
-                ListViewItem fileListItem = Installed_ModList.Items.Add(fname);
-
-                Mod AssociatedMod = null;
-
-                foreach (Mod modInfo in Mods)
-                {
-                    foreach (string filename in modInfo.filenames)
-                    {
-                        if (fname == filename)
-                        {
-                            AssociatedMod = modInfo;
-                            fileListItem.Checked = true;
-                        }
-                    }
-                }
-
-                if (AssociatedMod == null)
-                {
-                    for (int i = 0; i < Mods.Count; i++)
-                    {
-                        Mod modInfo = Mods[i];
-                        foreach (string filename in modInfo.filenames)
-                        {
-                            if (fname.Contains(filename))
-                            {
-                                AssociatedMod = modInfo;
-                                fileListItem.Checked = true;
-
-                                return;
-                            }
-                        }
-                    }
-                }
-
-                if (AssociatedMod != null)
-                {
-                    fileListItem.SubItems.Add(AssociatedMod.name);
-                    fileListItem.SubItems.Add(AssociatedMod.author);
-                    fileListItem.SubItems.Add(AssociatedMod.type);
-
-                    if (AssociatedMod.type == "Mod")
-                    {
-                        fileListItem.Group = Installed_ModList.Groups[0];
-                    }
-                    else if (AssociatedMod.type == "Library")
-                    {
-                        fileListItem.Group = Installed_ModList.Groups[1];
-                    }
-                }
-                else
-                {
-                    fileListItem.SubItems.Add("Unknown");
-                    fileListItem.SubItems.Add("Unknown");
-                    fileListItem.SubItems.Add("Unknown");
-                    fileListItem.Group = Installed_ModList.Groups[3];
-                }
-            }
-        }
-
-        public void LoadMMMMods()
-        {
-            var decodedMods = JSON.Parse(DownloadSite("https://raw.githubusercontent.com/DeadlyKitten/MonkeModInfo/master/modinfo.json"));
-            var decodedGroups = JSON.Parse(DownloadSite("https://raw.githubusercontent.com/DeadlyKitten/MonkeModInfo/master/groupinfo.json"));
-
-            var allMods = decodedMods.AsArray;
-            var allGroups = decodedGroups.AsArray;
-
-            for (int i = 0; i < allMods.Count; i++)
-            {
-                JSONNode current = allMods[i];
-                Mod release = new Mod(current["name"], current["author"], null, current["name"], "MMM_Mod", current["git_path"], current["download_url"]);
-                //UpdateReleaseInfo(ref release);
-                Mods.Add(release);
-            }
-        }
-
-        public void RenderMods(bool ModsEnabled, bool LibrariesEnabled, bool MMMEnabled, string searchQuery)
+        public void RenderMods(bool ModsEnabled, bool LibrariesEnabled, string searchQuery)
         {
             Catalog_ModList.Items.Clear();
 
@@ -247,16 +144,6 @@ namespace MechanicMonke
                     {
                         kMod.Remove();
                     }
-                } else if (jMod.type == "MMM_Mod")
-                {
-                    if (MMMEnabled)
-                    {
-                        kMod.Group = Catalog_ModList.Groups[2];
-                    }
-                    else
-                    {
-                        kMod.Remove();
-                    }
                 } else
                 {
                     kMod.Group = Catalog_ModList.Groups[3];
@@ -268,133 +155,53 @@ namespace MechanicMonke
 
         public void LoadGorillaTagInstall(string path)
         {
-            try
-            {
-                List<string> ModListsSaved = new List<string>(File.ReadAllLines(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\lists.txt"));
-                
-                if (ModListsSaved != null)
-                {
-                    ModLists = ModListsSaved;
-                }
-
-                pageControllers.Enabled = false;
-            } catch (Exception ex)
-            {
-                // there is no mod list, ignore
-                Console.WriteLine(ex.Message);
-
-                ModLists.Add("https://raw.githubusercontent.com/binguszingus/MMDictionary/master/mods.json");
-                File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\lists.txt", string.Join("\n", ModLists));
-            }
-
-            try
-            {
-                List<string> DictionarySources2 = new List<string>(File.ReadAllLines(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\dictionary.txt"));
-
-                if (DictionarySources2 != null)
-                {
-                    DictionarySources = DictionarySources2;
-                }
-
-                pageControllers.Enabled = false;
-            }
-            catch (Exception ex)
-            {
-                // there is no mod list, ignore
-                Console.WriteLine(ex.Message);
-            }
-
             Mods = new List<Mod>(); // clear mod cache
 
-            if (File.Exists(path + @"\Gorilla Tag.exe"))
+            if (File.Exists(path + @"\Capuchin.exe"))
             {
                 installLocation = path;
-                SetStatusText("Gorilla Tag directory found!");
+                SetStatusText("Capuchin directory found!");
                 installDir.Text = "Platform: " + ReturnGameInstallationPlatform(installLocation);
 
-                foreach (string modList in ModLists)
+                // get mod dictionary
+                JSONNode ModsJSON = null;
+
+                try
                 {
-                    // get mod dictionary
-                    JSONNode ModsJSON = null;
-
-                    try
-                    {
-                        ModsJSON = JSON.Parse(DownloadSite(modList));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        MessageBox.Show("There was an error parsing the JSON for a list. List: " + modList + "Exception: " + ex.Message, "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-                    var ModsList = ModsJSON.AsArray;
-
-                    for (int i = 0; i < ModsList.Count; i++)
-                    {
-                        JSONNode current = ModsList[i];
-                        Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], current["repo"], current["download"]);
-                        SetStatusText("Updating definition for mod : " + release.name);
-
-                        Mods.Add(release);
-                    }
+                    ModsJSON = JSON.Parse(DownloadSite("https://raw.githubusercontent.com/binguszingus/capuchinmodinfo/master/mods.json"));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    MessageBox.Show("There was an error parsing the JSON for mods.", "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
 
-                // load dictionaries
-                foreach (string diList in DictionarySources)
+                var ModsList = ModsJSON.AsArray;
+
+                for (int i = 0; i < ModsList.Count; i++)
                 {
-                    // get mod dictionary
-                    JSONNode ModsJSON = null;
+                    JSONNode current = ModsList[i];
+                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], current["repo"], current["download"]);
+                    SetStatusText("Updating definition for mod : " + release.name);
 
-                    try
-                    {
-                        ModsJSON = JSON.Parse(DownloadSite(diList));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        MessageBox.Show("There was an error parsing the JSON for a list. List: " + diList + "Exception: " + ex.Message, "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-                    var ModsList = ModsJSON.AsArray;
-
-                    for (int i = 0; i < ModsList.Count; i++)
-                    {
-                        JSONNode current = ModsList[i];
-                        Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], "EXC_PRIVATE", "EXC_PRIVATE", "EXC_PRIVATE");
-                        SetStatusText("Updating definition for mod : " + release.name);
-
-                        Mods.Add(release);
-                    }
+                    Mods.Add(release);
                 }
 
                 // load mods
-                Installed_ModList.Items.Clear();
+                RenderMods(true, true, "");
                 SetStatusText("Done!");
-
-                if (Directory.Exists(installLocation + @"\BepInEx\plugins")) { SearchDirForMods(installLocation + @"\BepInEx\plugins"); }
-                
-                foreach (string dir in Directory.GetDirectories(installLocation + @"\BepInEx\plugins\"))
-                {
-                    SearchDirForMods(dir);
-                }
             }
 
-            LoadMMMMods();
-
-            RenderMods(true, true, false, ""); // trying to fix some strange bug
+            RenderMods(true, true, ""); // trying to fix some strange bug
 
             Filter_Mods.Checked = true;
             Filter_Libraries.Checked = true;
-            Filter_MMM.Checked = false;
-
-            pageControllers.SelectedTab = tabPage1;
-            pageControllers.Enabled = true;
         }
 
         private void Main_Load(object sender, EventArgs e)
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            this.Text = "MechanicMonke v" + version;
+            this.Text = "CapuchinModManager v" + version;
 
             SetStatusText("Looking for install directory...");
 
@@ -438,7 +245,7 @@ namespace MechanicMonke
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            openFileDialog1.Title = "Select Gorilla Tag.exe";
+            openFileDialog1.Title = "Select Capuchin.exe";
             openFileDialog1.Multiselect = false;
             openFileDialog1.CheckFileExists = true;
             
@@ -451,11 +258,11 @@ namespace MechanicMonke
         {
             if (installLocation != null)
             {
-                System.Diagnostics.Process.Start(installLocation + @"\Gorilla Tag.exe");
+                System.Diagnostics.Process.Start(installLocation + @"\Capuchin.exe");
             }
             else
             {
-                SetStatusText("Could not find Gorilla Tag install directory. Please select it manually.");
+                SetStatusText("Could not find Capuchin install directory. Please select it manually.");
             }
         }
 
@@ -467,7 +274,7 @@ namespace MechanicMonke
             }
             else
             {
-                SetStatusText("Could not find Gorilla Tag install directory. Please select it manually.");
+                SetStatusText("Could not find Capuchin install directory. Please select it manually.");
             }
         }
 
@@ -479,7 +286,7 @@ namespace MechanicMonke
             }
             else
             {
-                SetStatusText("Could not find Gorilla Tag install directory. Please select it manually.");
+                SetStatusText("Could not find Capuchin install directory. Please select it manually.");
             }
         }
 
@@ -517,49 +324,45 @@ namespace MechanicMonke
             return client.DownloadData(url);
         }
 
-        public int Install(Mod release, int doneSteps = 0, int TotalSteps = 0)
+        private void Install()
         {
-            if (release.type == "EXC_PRIVATE") return 1;
-            int doneStepsLocal = doneSteps;
-
-            SetStatusText(string.Format("Downloading... {0}", release.name));
-            byte[] file = DownloadFile(release.download);
-            doneStepsLocal++;
-            MakePercentage(doneStepsLocal, TotalSteps);
-            Console.WriteLine("downloaded..");
-            SetStatusText(string.Format("Installing...{0}", release.name));
-            Console.WriteLine("installing..");
-            string fileName = Path.GetFileName(release.keyword + ".dll");
-
-            if (Path.GetExtension(fileName).Equals(".dll"))
+            SetStatusText("Starting install sequence...");
+            foreach (Mod release in Mods)
             {
-                string dir;
-
-                dir = Path.Combine(installLocation, @"BepInEx\plugins", Regex.Replace(release.name, @"\s+", string.Empty));
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
-                File.WriteAllBytes(Path.Combine(dir, fileName), file);
-
-                var dllFile = Path.Combine(installLocation, @"BepInEx\plugins", fileName);
-                if (File.Exists(dllFile))
+                if (release.installing)
                 {
-                    File.Delete(dllFile);
+                    SetStatusText(string.Format("Downloading...{0}", release.name));
+                    byte[] file = DownloadFile(release.download);
+                    SetStatusText(string.Format("Installing...{0}", release.name));
+                    string fileName = Path.GetFileName(release.download);
+                    if (Path.GetExtension(fileName).Equals(".dll"))
+                    {
+                        string dir;
+                        if (!release.name.Contains("BepInEx"))
+                        {
+                            dir = Path.Combine(installLocation, @"BepInEx\plugins", Regex.Replace(release.name, @"\s+", string.Empty));
+                            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                        }
+                        else
+                        {
+                            dir = installLocation;
+                        }
+                        File.WriteAllBytes(Path.Combine(dir, fileName), file);
+
+                        var dllFile = Path.Combine(installLocation, @"BepInEx\plugins", fileName);
+                        if (File.Exists(dllFile))
+                        {
+                            File.Delete(dllFile);
+                        }
+                    }
+                    else
+                    {
+                        UnzipFile(file, (release.name.Contains("BepInEx")) ? installLocation : Path.Combine(installLocation, @"BepInEx\plugins"));
+                    }
+                    SetStatusText(string.Format("Installed {0}!", release.name));
                 }
-                doneStepsLocal++;
-                MakePercentage(doneStepsLocal, TotalSteps);
             }
-            else
-            {
-                UnzipFile(file, installLocation);
-                doneStepsLocal++;
-                MakePercentage(doneStepsLocal, TotalSteps);
-            }
-
-            SetStatusText(string.Format("Installed {0}!", release.name));
-            doneStepsLocal++;
-            MakePercentage(doneStepsLocal, TotalSteps);
-
-            return doneStepsLocal;
+            SetStatusText("Install complete!");
         }
 
         public void InstallLocal(string filename)
@@ -599,46 +402,6 @@ namespace MechanicMonke
             progressBar.Value = percentage;
         }
 
-        private void Installed_UpdModBtn_Click(object sender, EventArgs e)
-        {
-            List<ListViewItem> CheckedMods = Installed_ModList.CheckedItems.Cast<ListViewItem>().ToList();
-
-            int ProgressBarSteps = CheckedMods.Count * 3;
-            int CurrentSteps = 0;
-
-            foreach (ListViewItem CheckedMod in CheckedMods)
-            {
-                Mod SelectedMod = GetModFromName(CheckedMod.SubItems[1].Text);
-
-                if (SelectedMod == null)
-                {
-                    SystemSounds.Exclamation.Play();
-                    SetStatusText("The mod " + CheckedMod.Text + " cannot be modified because it is not recognized as a mod.");
-                }
-
-                try
-                {
-                    CurrentSteps = Install(SelectedMod, CurrentSteps, ProgressBarSteps);
-                }
-                catch (Exception _ex)
-                {
-                    Console.WriteLine(_ex.Message);
-                    SystemSounds.Exclamation.Play();
-                    SetStatusText("The mod " + CheckedMod.Text + " could not be installed.");
-                }
-            }
-        }
-
-        private void moddingDiscordToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Process.Start("https://discord.gg/monkemod");
-        }
-
-        private void moddingGuideToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Process.Start("https://gorillatagmodding.burrito.software");
-        }
-
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             About Sophisticated_Cube = new About();
@@ -647,30 +410,7 @@ namespace MechanicMonke
 
         private void button1_Click(object sender, EventArgs e)
         {
-            List<ListViewItem> CheckedMods = Catalog_ModList.CheckedItems.Cast<ListViewItem>().ToList();
-
-            foreach (ListViewItem CheckedMod in CheckedMods)
-            {
-                Mod SelectedMod = GetModFromName(CheckedMod.Text);
-
-                if (SelectedMod == null)
-                {
-                    SystemSounds.Exclamation.Play();
-                    SetStatusText("The mod " + CheckedMod.Text + " cannot be modified because it is not recognized as a mod.");
-                }
-
-                try
-                {
-                    if (SelectedMod.type != "EXC_PRIVATE")
-                        Install(SelectedMod);
-                }
-                catch (Exception _ex)
-                {
-                    Console.WriteLine(_ex.Message);
-                    SystemSounds.Exclamation.Play();
-                    SetStatusText("The mod " + CheckedMod.Text + " could not be installed.");
-                }
-            }
+            Install();
         }
 
         private void filedllToolStripMenuItem_Click(object sender, EventArgs e)
@@ -691,37 +431,37 @@ namespace MechanicMonke
                 return;
             } else
             {
-                Registry.SetValue(@"HKEY_CURRENT_USER\Software\MechanicMonke", "installLocation", installLocation);
+                Registry.SetValue(@"HKEY_CURRENT_USER\Software\CapuchinModManager", "installLocation", installLocation);
                 SetStatusText("Set " + installLocation + " as default Gorilla Tag install directory.");
             }
         }
 
         private void Filter_Mods_CheckedChanged(object sender, EventArgs e)
         {
-            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, Filter_MMM.Checked, searchBoxText.Text);
+            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
         }
 
         private void Filter_Libraries_CheckedChanged(object sender, EventArgs e)
         {
-            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, Filter_MMM.Checked, searchBoxText.Text);
+            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
         }
 
         private void Filter_MMM_CheckedChanged(object sender, EventArgs e)
         {
-            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, Filter_MMM.Checked, searchBoxText.Text);
+            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
         }
 
         private void searchBoxText_TextChanged(object sender, EventArgs e)
         {
-            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, Filter_MMM.Checked, searchBoxText.Text);
+            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
         }
 
         private void addFromURLToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult Warning = MessageBox.Show("Always be careful when using online lists as there is a risk of downloading malicious content. Only add trusted lists to your MechanicMonke.\n\nDo you want to continue?", this.Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            DialogResult Warning = MessageBox.Show("Always be careful when using online lists as there is a risk of downloading malicious content. Only add trusted lists to your CapuchinModManager.\n\nDo you want to continue?", this.Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (Warning == DialogResult.No) return;
 
-            string uri = StringPrompt.Prompt("Enter URL of .json list you want to add to MechanicMonke.");
+            string uri = StringPrompt.Prompt("Enter URL of .json list you want to add to CapuchinModManager.");
 
             if (uri == "" || uri == null) return;
 
@@ -772,7 +512,7 @@ namespace MechanicMonke
 
         private void catalogsListToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string uri = StringPrompt.Prompt("Enter URL of .json list you want to remove from MechanicMonke. See lists.txt for all lists.");
+            string uri = StringPrompt.Prompt("Enter URL of .json list you want to remove from CapuchinModManager. See lists.txt for all lists.");
 
             if (uri == "" || uri == null) return;
             
@@ -785,7 +525,7 @@ namespace MechanicMonke
                 LoadGorillaTagInstall(installLocation);
             } else
             {
-                MessageBox.Show("The list you selected is not in your MechanicMonke list.", "List Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("The list you selected is not in your CapuchinModManager list.", "List Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -841,7 +581,7 @@ namespace MechanicMonke
 
         private void provideLocalDictionaryToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string uri = StringPrompt.Prompt("Enter URL of .json dictionary you want to add to MechanicMonke.");
+            string uri = StringPrompt.Prompt("Enter URL of .json dictionary you want to add to CapuchinModManager.");
 
             if (uri == "" || uri == null) return;
 
@@ -868,7 +608,7 @@ namespace MechanicMonke
                 for (int i = 0; i < ModsList.Count; i++)
                 {
                     JSONNode current = ModsList[i];
-                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], "EXC_PRIVATE", "EXC_PRIVATE", "EXC_PRIVATE");
+                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], "EXC_PRIVATE", "EXC_PRIVATE");
                     SetStatusText("Updating definition for mod : " + release.name);
 
                     Mods.Add(release);
@@ -884,7 +624,7 @@ namespace MechanicMonke
             if (!jsonErrors)
             {
                 DictionarySources.Add(uri);
-                File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\dictionary.txt", string.Join("\n", ModLists));
+                File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\dictionary.txt", string.Join("\n", DictionarySources));
 
                 SetStatusText("Reloading domain...");
                 LoadGorillaTagInstall(installLocation);
@@ -902,6 +642,7 @@ namespace MechanicMonke
         public string filepath;
         public bool installed;
         public string download;
+        public bool installing;
 
         public Mod(string name, string author, JSONNode filenames_ij, string keyword, string type, string repo, string download)
         {

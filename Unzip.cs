@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 
-namespace MechanicMonke
+namespace CapuchinModManager
 {
     /// <summary>
     /// Unzip helper class.
