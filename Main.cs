@@ -51,7 +51,7 @@ namespace CapuchinModManager
             {
                 if (System.IO.Directory.Exists(definition))
                 {
-                    // make sure it contains Gorilla Tag
+                    // make sure it contains Capuchin
 
                     if (System.IO.File.Exists(definition + @"\Capuchin.exe"))
                     {
@@ -115,15 +115,17 @@ namespace CapuchinModManager
 
             foreach (Mod jMod in Mods)
             {
-                // filtered stuff since these dont work
-                if (jMod.repo == "EXC_PRIVATE") { continue; };
-                if (jMod.name.ToLower().Contains("bepinex")) { continue; };
-
                 // search functionality
                 if (!jMod.name.ToLower().StartsWith(searchQuery.ToLower())) { continue; };
 
                 ListViewItem kMod = Catalog_ModList.Items.Add(jMod.name);
                 kMod.SubItems.Add(jMod.author);
+
+                if (jMod.installed)
+                    kMod.Checked = true;
+
+                if (jMod.name.Contains("MelonLoader"))
+                    kMod.Checked = true;
 
                 if (jMod.type == "Mod")
                 {
@@ -150,8 +152,6 @@ namespace CapuchinModManager
                 }
             }
         }
-
-        List<String> ModLists = new List<String>();
 
         public void LoadGorillaTagInstall(string path)
         {
@@ -188,14 +188,27 @@ namespace CapuchinModManager
                 }
 
                 // load mods
-                RenderMods(true, true, "");
+                if (Directory.Exists(installLocation + @"\Mods"))
+                {
+                    foreach (string filename in Directory.GetFiles(installLocation + @"\Mods"))
+                    {
+                        foreach (Mod mod in Mods)
+                        {
+                            if (mod.filenames.Contains(Path.GetFileName(filename)) || filename.Contains(mod.keyword))
+                            {
+                                mod.installed = true;
+                            }
+                        }
+                    }
+                }
+
+                RenderMods(true, true, ""); // trying to fix some strange bug
+
+                Filter_Mods.Checked = true;
+                Filter_Libraries.Checked = true;
+
                 SetStatusText("Done!");
             }
-
-            RenderMods(true, true, ""); // trying to fix some strange bug
-
-            Filter_Mods.Checked = true;
-            Filter_Libraries.Checked = true;
         }
 
         private void Main_Load(object sender, EventArgs e)
@@ -207,11 +220,11 @@ namespace CapuchinModManager
 
             if (registryInstallLocation != null)
             {
-                SetStatusText("Found pre-existing found directory at " + registryInstallLocation);
+                SetStatusText("Found pre-existing directory at " + registryInstallLocation);
                 // revalidate install directory
                 if (System.IO.Directory.Exists(registryInstallLocation))
                 {
-                    if (System.IO.File.Exists(registryInstallLocation + @"\Gorilla Tag.exe"))
+                    if (System.IO.File.Exists(registryInstallLocation + @"\Capuchin.exe"))
                     {
                         installLocation = registryInstallLocation;
                     } else
@@ -230,7 +243,7 @@ namespace CapuchinModManager
 
             if (installLocation == null)
             {
-                SetStatusText("Could not find Gorilla Tag install directory. Please select it manually (CTRL + O).");
+                SetStatusText("Could not find Capuchin install directory. Please select it manually (CTRL + O).");
                 return;
             } else
             {
@@ -303,10 +316,6 @@ namespace CapuchinModManager
             return null;
         }
 
-        private void listView1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            // misclick
-        }
         private void UnzipFile(byte[] data, string directory)
         {
             using (MemoryStream ms = new MemoryStream(data))
@@ -326,6 +335,15 @@ namespace CapuchinModManager
 
         private void Install()
         {
+            foreach (ListViewItem modThing in Catalog_ModList.Items)
+            {
+                if (modThing.Checked)
+                {
+                    Mod mod = GetModFromName(modThing.Text);
+                    mod.installing = true;
+                }
+            }
+
             SetStatusText("Starting install sequence...");
             foreach (Mod release in Mods)
             {
@@ -338,9 +356,9 @@ namespace CapuchinModManager
                     if (Path.GetExtension(fileName).Equals(".dll"))
                     {
                         string dir;
-                        if (!release.name.Contains("BepInEx"))
+                        if (!release.name.Contains("MelonLoader"))
                         {
-                            dir = Path.Combine(installLocation, @"BepInEx\plugins", Regex.Replace(release.name, @"\s+", string.Empty));
+                            dir = Path.Combine(installLocation, @"\Mods", Regex.Replace(release.name, @"\s+", string.Empty));
                             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                         }
                         else
@@ -349,7 +367,7 @@ namespace CapuchinModManager
                         }
                         File.WriteAllBytes(Path.Combine(dir, fileName), file);
 
-                        var dllFile = Path.Combine(installLocation, @"BepInEx\plugins", fileName);
+                        var dllFile = Path.Combine(installLocation, @"\Mods", fileName);
                         if (File.Exists(dllFile))
                         {
                             File.Delete(dllFile);
@@ -357,49 +375,21 @@ namespace CapuchinModManager
                     }
                     else
                     {
-                        UnzipFile(file, (release.name.Contains("BepInEx")) ? installLocation : Path.Combine(installLocation, @"BepInEx\plugins"));
+                        UnzipFile(file, (release.name.Contains("MelonLoader")) ? installLocation : Path.Combine(installLocation, @"\Mods"));
                     }
+
+                    if (release.name.Contains("MelonLoader"))
+                    {
+                        Directory.CreateDirectory(installLocation + @"\Mods");
+                        Directory.CreateDirectory(installLocation + @"\Plugins");
+                        Directory.CreateDirectory(installLocation + @"\UserData");
+                        Directory.CreateDirectory(installLocation + @"\UserLibs");
+                    }
+
                     SetStatusText(string.Format("Installed {0}!", release.name));
                 }
             }
             SetStatusText("Install complete!");
-        }
-
-        public void InstallLocal(string filename)
-        {
-            byte[] file = File.ReadAllBytes(filename);
-            string fileName = Path.GetFileName(filename + ".dll");
-            SetStatusText(string.Format("Installing...{0}", fileName));
-
-            if (Path.GetExtension(fileName).Equals(".dll"))
-            {
-                string dir;
-
-                dir = Path.Combine(installLocation, @"BepInEx\plugins", Regex.Replace(fileName, @"\s+", string.Empty));
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
-                File.WriteAllBytes(Path.Combine(dir, fileName), file);
-
-                var dllFile = Path.Combine(installLocation, @"BepInEx\plugins", fileName);
-                if (File.Exists(dllFile))
-                {
-                    File.Delete(dllFile);
-                }
-            }
-            else
-            {
-                UnzipFile(file, installLocation);
-            }
-
-            SetStatusText(string.Format("Installed {0}!", fileName));
-        }
-
-        private void MakePercentage(int i, int j)
-        {
-            if (j == 0) return;
-
-            int percentage = (i * 100) / j;
-            progressBar.Value = percentage;
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -413,29 +403,6 @@ namespace CapuchinModManager
             Install();
         }
 
-        private void filedllToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            openFileDialog1.CheckFileExists = true;
-            openFileDialog1.Title = "Select .dll or .zip file";
-            openFileDialog1.Filter = "DLL Files|*.dll|ZIP Files|*.zip";
-
-            openFileDialog1.ShowDialog();
-            InstallLocal(openFileDialog1.FileName);
-        }
-
-        private void makeThisMyDefaultGorillaTagToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (installLocation == null)
-            {
-                SetStatusText("Could not find Gorilla Tag install directory. Please select it manually.");
-                return;
-            } else
-            {
-                Registry.SetValue(@"HKEY_CURRENT_USER\Software\CapuchinModManager", "installLocation", installLocation);
-                SetStatusText("Set " + installLocation + " as default Gorilla Tag install directory.");
-            }
-        }
-
         private void Filter_Mods_CheckedChanged(object sender, EventArgs e)
         {
             RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
@@ -446,92 +413,9 @@ namespace CapuchinModManager
             RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
         }
 
-        private void Filter_MMM_CheckedChanged(object sender, EventArgs e)
-        {
-            RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
-        }
-
         private void searchBoxText_TextChanged(object sender, EventArgs e)
         {
             RenderMods(Filter_Mods.Checked, Filter_Libraries.Checked, searchBoxText.Text);
-        }
-
-        private void addFromURLToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            DialogResult Warning = MessageBox.Show("Always be careful when using online lists as there is a risk of downloading malicious content. Only add trusted lists to your CapuchinModManager.\n\nDo you want to continue?", this.Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (Warning == DialogResult.No) return;
-
-            string uri = StringPrompt.Prompt("Enter URL of .json list you want to add to CapuchinModManager.");
-
-            if (uri == "" || uri == null) return;
-
-            bool jsonErrors = false;
-
-            // get mod dictionary
-            JSONNode ModsJSON = null;
-
-            try
-            {
-                ModsJSON = JSON.Parse(DownloadSite(uri));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                MessageBox.Show("There was an error parsing the JSON for a list. List: ", "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                jsonErrors = true;
-            }
-
-            var ModsList = ModsJSON.AsArray;
-
-            try
-            {
-                for (int i = 0; i < ModsList.Count; i++)
-                {
-                    JSONNode current = ModsList[i];
-                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], current["repo"], current["download"]);
-                    SetStatusText("Updating definition for mod : " + release.name);
-
-                    Mods.Add(release);
-                }
-            } catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                MessageBox.Show("The list you selected contains syntax errors.\n\nList creators: Please see the example JSON.\nList users: Please contact the admin for this list.", "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                jsonErrors = true;
-            }
-
-            if (!jsonErrors)
-            {
-                ModLists.Add(uri);
-                File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\lists.txt", string.Join("\n", ModLists));
-
-                SetStatusText("Reloading domain...");
-                LoadGorillaTagInstall(installLocation);
-            }
-        }
-
-        private void catalogsListToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            string uri = StringPrompt.Prompt("Enter URL of .json list you want to remove from CapuchinModManager. See lists.txt for all lists.");
-
-            if (uri == "" || uri == null) return;
-            
-            if (ModLists.Contains(uri))
-            {
-                ModLists.Remove(uri);
-                File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\lists.txt", string.Join("\n", ModLists));
-
-                SetStatusText("Reloading domain...");
-                LoadGorillaTagInstall(installLocation);
-            } else
-            {
-                MessageBox.Show("The list you selected is not in your CapuchinModManager list.", "List Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void viewListstxtToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\lists.txt");
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -552,83 +436,16 @@ namespace CapuchinModManager
             }
         }
 
-        private void Catalog_ModList_SelectedIndexChanged(object sender, EventArgs e)
+        private void Catalog_ModList_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
-            /*
-             * description thing i tried to add
-            ListViewItem CurrentlySelected = Catalog_ModList.SelectedItems.Count > 0 ? Catalog_ModList.SelectedItems[0] : null;
-
-            if (CurrentlySelected == null)
+            if (e.Item.Text.Contains("MelonLoader"))
+            {
+                e.Item.Checked = true;
                 return;
-
-            JSONNode API_Result = JSON.Parse(DownloadSite("https://api.github.com/repos/" + GetModFromName(CurrentlySelected.Text).repo));
-            JSONArray stuff = API_Result.AsArray;
-
-            if (stuff == null || stuff["description"] == "" || stuff["description"] == null)
-            {
-                modDescription.Text = "No description available.";
-            } else
-            {
-                modDescription.Text = stuff["description"];
-            }*/
-        }
-
-        private void viewDictionarytxtToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\dictionary.txt", string.Join("\n", DictionarySources));
-            Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\dictionary.txt");
-        }
-
-        private void provideLocalDictionaryToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            string uri = StringPrompt.Prompt("Enter URL of .json dictionary you want to add to CapuchinModManager.");
-
-            if (uri == "" || uri == null) return;
-
-            bool jsonErrors = false;
-
-            // get mod dictionary
-            JSONNode ModsJSON = null;
-
-            try
-            {
-                ModsJSON = JSON.Parse(DownloadSite(uri));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                MessageBox.Show("There was an error parsing the JSON for a list. List: ", "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                jsonErrors = true;
             }
 
-            var ModsList = ModsJSON.AsArray;
-
-            try
-            {
-                for (int i = 0; i < ModsList.Count; i++)
-                {
-                    JSONNode current = ModsList[i];
-                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], "EXC_PRIVATE", "EXC_PRIVATE");
-                    SetStatusText("Updating definition for mod : " + release.name);
-
-                    Mods.Add(release);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                MessageBox.Show("The list you selected contains syntax errors.\n\nList creators: Please see the example JSON.\nList users: Please contact the admin for this list.", "JSON Parsing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                jsonErrors = true;
-            }
-
-            if (!jsonErrors)
-            {
-                DictionarySources.Add(uri);
-                File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\dictionary.txt", string.Join("\n", DictionarySources));
-
-                SetStatusText("Reloading domain...");
-                LoadGorillaTagInstall(installLocation);
-            }
+            Mod mod = GetModFromName(e.Item.Text);
+            mod.installing = e.Item.Checked;
         }
     }
     public class Mod

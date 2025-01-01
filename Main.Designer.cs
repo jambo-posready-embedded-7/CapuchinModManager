@@ -51,7 +51,6 @@ namespace CapuchinModManager
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.progressBar = new System.Windows.Forms.ProgressBar();
             this.button2 = new System.Windows.Forms.Button();
             this.searchLabel = new System.Windows.Forms.Label();
             this.searchBoxText = new System.Windows.Forms.TextBox();
@@ -119,20 +118,20 @@ namespace CapuchinModManager
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
             this.openToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(143, 6);
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
             this.quitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
@@ -193,15 +192,6 @@ namespace CapuchinModManager
             // openFileDialog1
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
-            // 
-            // progressBar
-            // 
-            this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar.Location = new System.Drawing.Point(237, 403);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(335, 23);
-            this.progressBar.TabIndex = 12;
             // 
             // button2
             // 
@@ -306,7 +296,7 @@ namespace CapuchinModManager
             this.Catalog_ModList.TabIndex = 3;
             this.Catalog_ModList.UseCompatibleStateImageBehavior = false;
             this.Catalog_ModList.View = System.Windows.Forms.View.Details;
-            this.Catalog_ModList.SelectedIndexChanged += new System.EventHandler(this.Catalog_ModList_SelectedIndexChanged);
+            this.Catalog_ModList.ItemChecked += new System.Windows.Forms.ItemCheckedEventHandler(this.Catalog_ModList_ItemChecked);
             // 
             // columnHeader2
             // 
@@ -334,7 +324,6 @@ namespace CapuchinModManager
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(789, 459);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.progressBar);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.searchLabel);
@@ -385,7 +374,6 @@ namespace CapuchinModManager
         private TextBox searchBoxText;
         private Label searchLabel;
         private Button button2;
-        private ProgressBar progressBar;
         private Label label1;
     }
 }
