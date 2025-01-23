@@ -127,6 +127,9 @@ namespace CapuchinModManager
                 if (jMod.name.Contains("MelonLoader"))
                     kMod.Checked = true;
 
+                if (jMod.name.Contains("BepInEx"))
+                    kMod.Checked = true;
+
                 if (jMod.type == "Mod")
                 {
                     if (ModsEnabled)
@@ -181,7 +184,7 @@ namespace CapuchinModManager
                 for (int i = 0; i < ModsList.Count; i++)
                 {
                     JSONNode current = ModsList[i];
-                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], current["repo"], current["download"]);
+                    Mod release = new Mod(current["name"], current["author"], current["filenames"], current["keyword"], current["type"], current["repo"], current["download"], current["modloader"]);
                     SetStatusText("Updating definition for mod : " + release.name);
 
                     Mods.Add(release);
@@ -191,6 +194,21 @@ namespace CapuchinModManager
                 if (Directory.Exists(installLocation + @"\Mods"))
                 {
                     foreach (string filename in Directory.GetFiles(installLocation + @"\Mods"))
+                    {
+                        foreach (Mod mod in Mods)
+                        {
+                            if (mod.filenames.Contains(Path.GetFileName(filename)) || filename.Contains(mod.keyword))
+                            {
+                                mod.installed = true;
+                            }
+                        }
+                    }
+                }
+
+                // load mods
+                if (Directory.Exists(installLocation + @"\BepInEx\plugins"))
+                {
+                    foreach (string filename in Directory.GetFiles(installLocation + @"\BepInEx\plugins"))
                     {
                         foreach (Mod mod in Mods)
                         {
@@ -356,18 +374,31 @@ namespace CapuchinModManager
                     if (Path.GetExtension(fileName).Equals(".dll"))
                     {
                         string dir;
-                        if (!release.name.Contains("MelonLoader"))
+                        if (!(release.Name.Contains("MelonLoader") || release.Name.Contains("BepInEx")))
                         {
-                            dir = Path.Combine(installLocation, @"\Mods", Regex.Replace(release.name, @"\s+", string.Empty));
-                            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                            if (release.ModLoader == "MelonLoader") {
+                                dir = Path.Combine(installLocation, @"\Mods", Regex.Replace(release.name, @"\s+", string.Empty));
+                                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                            }
+                            if (release.ModLoader == "BepInEx") {
+                                dir = Path.Combine(installLocation, @"\BepInEx\plugins", Regex.Replace(release.name, @"\s+", string.Empty));
+                                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                            }
                         }
                         else
                         {
                             dir = installLocation;
                         }
                         File.WriteAllBytes(Path.Combine(dir, fileName), file);
+                        
+                        var dllFile = "";
 
-                        var dllFile = Path.Combine(installLocation, @"\Mods", fileName);
+                        if (release.ModLoader == "BepInEx") {
+                            dllFile = Path.Combine(installLocation, @"\BepInEx\plugins", fileName);
+                        else if (release.ModLoader == "MelonLoader") {
+                            dllFile = Path.Combine(installLocation, @"\Mods", fileName);
+                        }
+                        
                         if (File.Exists(dllFile))
                         {
                             File.Delete(dllFile);
@@ -375,7 +406,7 @@ namespace CapuchinModManager
                     }
                     else
                     {
-                        UnzipFile(file, (release.name.Contains("MelonLoader")) ? installLocation : Path.Combine(installLocation, @"\Mods"));
+                        UnzipFile(file, (release.name.Contains("MelonLoader") || release.name.Contains("BepInEx")) ? installLocation : release.ModLoader.Contains("MelonLoader") ? Path.Combine(installLocation, @"\Mods") : Path.Combine(installLocation, @"\BepInEx\plugins");
                     }
 
                     if (release.name.Contains("MelonLoader"))
@@ -438,7 +469,7 @@ namespace CapuchinModManager
 
         private void Catalog_ModList_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
-            if (e.Item.Text.Contains("MelonLoader"))
+            if (e.Item.Text.Contains("MelonLoader") || e.Item.Text.Contains("BepInEx"))
             {
                 e.Item.Checked = true;
                 return;
@@ -460,8 +491,9 @@ namespace CapuchinModManager
         public bool installed;
         public string download;
         public bool installing;
+        public string modloader;
 
-        public Mod(string name, string author, JSONNode filenames_ij, string keyword, string type, string repo, string download)
+        public Mod(string name, string author, JSONNode filenames_ij, string keyword, string type, string repo, string download, string mod_loader)
         {
             this.name = name;
             this.author = author;
@@ -472,6 +504,7 @@ namespace CapuchinModManager
             this.filepath = "";
             this.installed = false;
             this.download = download;
+            this.modloader = mod_loader;
 
             if (filenames_ij == null)
             {
