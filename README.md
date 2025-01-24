@@ -25,3 +25,10 @@ Download the latest `CapuchinModManager.exe` from the releases page and run it.
 ```ps2
 dotnet build
 ```
+
+## License
+CapuchinModManager is licensed under the MIT License. Essentially:
+- You are free to share, modify, and redistribute the code, source-avaliable or not
+- As long as you follow the terms of this license, those rights cannot be taken away
+
+###### Trans rights are human rights - (C) Copyright 2024 - 2025 Jambo
