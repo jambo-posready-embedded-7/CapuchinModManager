@@ -1,4 +1,6 @@
 # CapuchinModManager ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jamboington/CapuchinModManager/total)
+> Join the [Capuchin Modding Community](https://discord.gg/awVb24kMxw)
+
 CMM is an automatic mod installer for Steam versions of Capuchin. It works almost perfectly and is very easy to use and understand.
 It is not a fork of MMM, it is it's own application.
 
